@@ -14,20 +14,22 @@ The MVP is a single-user app that runs on your own PC, keeps all data locally, a
 
 The MVP succeeds if, after a month of use, playtime is spread across more of the games you own, the picks are rated as enjoyable, and fewer new games get bought.
 
-**Goals**
+### Goals
 
 1. More diverse play: spread hours across more games and more kinds of games.
 2. More enjoyment: picks you rate well and keep playing.
 3. More time in games you already own, measured as hours in picked games, not total hours, so the app is rewarded for finding good games rather than longer sessions.
 4. Less money spent on new games.
 
-**Non-goals for the MVP**
+### Non-goals for the MVP
 
 - Suggesting games you do not own, now or later. The app assumes a large existing library, so every pick comes from it.
 - Other stores (Epic, GOG, Xbox), multiple users, social features, mobile.
 - Any cloud account or server; everything stays on your PC.
 
-**Metrics** (targets are first guesses to revisit after real data)
+### Metrics
+
+Targets are first guesses to revisit after real data.
 
 | Metric | Definition | Source | Proposed target |
 | --- | --- | --- | --- |
@@ -60,7 +62,7 @@ flowchart TB
   class F learn
 ```
 
-Skip, Not now and Never bypass the play step and go straight to learning (see Feedback and learning).
+Skip, Not now and Never bypass the play step and go straight to learning (see [Feedback and learning](#feedback-and-learning)).
 
 Each slate holds five picks across three slot types (2 Comfort, 2 Stretch, 1 Wildcard) so one round cannot collapse into "more of the same":
 
@@ -70,7 +72,7 @@ Each slate holds five picks across three slot types (2 Comfort, 2 Stretch, 1 Wil
 | Stretch | Shares some tags with your favorites, differs on others | Widens taste one step at a time |
 | Wildcard | From a tag cluster you rarely play | Exploration; finds hidden likes |
 
-**MVP features (must have)**
+### MVP features (must have)
 
 - [ ] Connect: paste a Steam Web API key and a profile URL or SteamID64.
 - [ ] Library sync on launch and every few hours while open, saved as dated playtime snapshots.
@@ -80,7 +82,7 @@ Each slate holds five picks across three slot types (2 Comfort, 2 Stretch, 1 Wil
 - [ ] Play button that opens the game through Steam.
 - [ ] Check-in: when a sync shows new playtime on a pick, ask for a 1 to 5 rating and a status.
 - [ ] Game status you can set by hand: Unplayed, Playing, Finished, Dropped, Endless (multiplayer or sandbox), Hidden.
-- [ ] Stats page with the metrics from Goals.
+- [ ] Stats page with the metrics from [Goals](#goals).
 - [ ] Export and import: all app data in one small file, for backups or moving to another PC.
 
 **Later, not MVP:** expected length from HowLongToBeat, Steam Deck compatibility filter, a "how much time do I have" filter, Steam sign-in instead of a pasted key, installers for Windows and Linux.
@@ -91,11 +93,11 @@ Everything the MVP needs comes from Steam itself, plus one community fallback fo
 
 | Data | Source | Notes |
 | --- | --- | --- |
-| Owned games, lifetime and last-2-weeks playtime (minutes) | [IPlayerService/GetOwnedGames](https://partner.steamgames.com/doc/webapi/IPlayerService) with include\_appinfo and include\_played\_free\_games | One call returns the whole library. Snapshots over time give the playtime delta. |
-| Achievements unlocked, with unlock times | [ISteamUserStats/GetPlayerAchievements](https://developer.valvesoftware.com/wiki/Steam_Web_API) | One call per game; only for games flagged has\_community\_visible\_stats. The full list also gives the total, so completion % = unlocked / total. |
-| User tags with weights, review summary | [IStoreBrowseService/GetItems](https://steamapi.xpaw.me/IStoreBrowseService) with include\_tag\_count and include\_reviews; tag names from [IStoreService/GetTagList](https://steamapi.xpaw.me/IStoreService) | Undocumented by Valve, so wrap it behind one adapter. Takes a list of app ids per call. |
+| Owned games, lifetime and last-2-weeks playtime (minutes) | [IPlayerService/GetOwnedGames](https://partner.steamgames.com/doc/webapi/IPlayerService) with `include_appinfo` and `include_played_free_games` | One call returns the whole library. Snapshots over time give the playtime delta. |
+| Achievements unlocked, with unlock times | [ISteamUserStats/GetPlayerAchievements](https://developer.valvesoftware.com/wiki/Steam_Web_API) | One call per game; only for games flagged `has_community_visible_stats`. The full list also gives the total, so completion % = unlocked / total. |
+| User tags with weights, review summary | [IStoreBrowseService/GetItems](https://steamapi.xpaw.me/IStoreBrowseService) with `include_tag_count` and `include_reviews`; tag names from [IStoreService/GetTagList](https://steamapi.xpaw.me/IStoreService) | Undocumented by Valve, so wrap it behind one adapter. Takes a list of app ids per call. |
 | Tags (fallback) | [SteamSpy appdetails](https://steamspy.com/api.php) | Tags with vote counts. 1 request per second; data refreshes daily. |
-| Genres, categories (single-player, co-op), current price | Store appdetails endpoint (store.steampowered.com/api/appdetails) | Unofficial; developers report a throttle near [200 requests per 5 minutes](https://www.danieltperry.me/post/instructor-as-search-engine/part1-obtaining-data/). Cache and refresh weekly. |
+| Genres, categories (single-player, co-op), current price | Store appdetails endpoint (`store.steampowered.com/api/appdetails`) | Unofficial; developers report a throttle near [200 requests per 5 minutes](https://www.danieltperry.me/post/instructor-as-search-engine/part1-obtaining-data/). Cache and refresh weekly. |
 | Expected length (later) | HowLongToBeat via an [unofficial library](https://pypi.org/project/howlongtobeatpy/) | No official API; can break when the site changes. Not in the MVP. |
 
 **Completion, without a Steam field:** use your own status first (Finished, Dropped, Endless), then achievement %, then hours played against expected length once HowLongToBeat is added.
@@ -116,7 +118,7 @@ V1 is a content-based scorer over tags plus a small bandit for exploration: simp
 
 **4. Score each candidate.**
 
-```latex
+```math
 \text{score}(g) = w_a \cdot \text{affinity} + w_q \cdot \text{quality} + w_n \cdot \text{novelty} + w_b \cdot \text{backlog} - w_f \cdot \text{fatigue}
 ```
 
@@ -136,12 +138,12 @@ V1 is a content-based scorer over tags plus a small bandit for exploration: simp
 
 Every pick you try is scored once, 14 days after you accept it (or sooner if you rate it), as a reward between 0 and 1 that blends your rating with what Steam saw you do.
 
-```latex
+```math
 R = 0.5 \cdot \frac{r - 1}{4} + 0.3 \cdot \min\left(1, \frac{\ln(1 + \Delta h)}{\ln 11}\right) + 0.2 \cdot \text{progress}
 ```
 
-- r is your 1 to 5 rating. With no rating, its 0.5 weight is split across the other two terms.
-- Δh is hours played since the pick; 10 hours scores full marks, so a short great game is not punished and grinding is not over-rewarded.
+- $r$ is your 1 to 5 rating. With no rating, its 0.5 weight is split across the other two terms.
+- $\Delta h$ is hours played since the pick; 10 hours scores full marks, so a short great game is not punished and grinding is not over-rewarded.
 - progress is achievement % gained since the pick, with 20 points or more scoring 1; marking the game Finished also scores 1.
 
 | Event | Reward | Taste profile | Cluster bandit |
@@ -226,24 +228,24 @@ Nine SQLite tables cover the MVP; the key idea is that every suggestion stores t
 
 | Table | Key columns | Purpose |
 | --- | --- | --- |
-| games | appid (PK), name, has\_stats, ach\_total, review\_pct, review\_count, price\_cents, categories, cluster\_id, status, status\_set\_at, metadata\_at | One row per owned game, plus cached metadata and your status |
-| tags | tag\_id (PK), name | Tag id to name lookup |
-| game\_tags | appid, tag\_id, weight | Tag weights per game, input to the tag vectors |
-| clusters | cluster\_id (PK), label, successes, failures | Tag clusters and their bandit counts |
-| playtime\_snapshots | appid, taken\_at, minutes\_forever, minutes\_2weeks | Playtime history; a new row only when a game's minutes change |
-| achievements | appid, api\_name, unlocked\_at | Unlocked achievements and when; the total per game lives in games |
-| suggestions | id (PK), slate\_id, appid, slot, score, reason, suggested\_at, response, responded\_at, base\_minutes, base\_ach\_pct, resolved\_at, reward, outcome | Every pick, your response, its baseline and final reward |
-| ratings | appid, rating, rated\_at, source | Ratings from check-ins, cold-start seeding or manual edits |
-| library\_events | appid, event, detected\_at, price\_cents | Games added or removed between syncs; feeds the spend metric |
+| `games` | `appid` (PK), `name`, `has_stats`, `ach_total`, `review_pct`, `review_count`, `price_cents`, `categories`, `cluster_id`, `status`, `status_set_at`, `metadata_at` | One row per owned game, plus cached metadata and your status |
+| `tags` | `tag_id` (PK), `name` | Tag id to name lookup |
+| `game_tags` | `appid`, `tag_id`, `weight` | Tag weights per game, input to the tag vectors |
+| `clusters` | `cluster_id` (PK), `label`, `successes`, `failures` | Tag clusters and their bandit counts |
+| `playtime_snapshots` | `appid`, `taken_at`, `minutes_forever`, `minutes_2weeks` | Playtime history; a new row only when a game's minutes change |
+| `achievements` | `appid`, `api_name`, `unlocked_at` | Unlocked achievements and when; the total per game lives in games |
+| `suggestions` | `id` (PK), `slate_id`, `appid`, `slot`, `score`, `reason`, `suggested_at`, `response`, `responded_at`, `base_minutes`, `base_ach_pct`, `resolved_at`, `reward`, `outcome` | Every pick, your response, its baseline and final reward |
+| `ratings` | `appid`, `rating`, `rated_at`, `source` | Ratings from check-ins, cold-start seeding or manual edits |
+| `library_events` | `appid`, `event`, `detected_at`, `price_cents` | Games added or removed between syncs; feeds the spend metric |
 
 Settings (SteamID, sync interval) live in a small config file; the API key lives in the OS keyring.
 
 **Export file (MVP target).** All app data fits in one small file you can export, keep as a backup, and import on another PC or a fresh install.
 
-- Format: gzip-compressed JSON, named like backlog-compass-2026-10-01.json.gz. JSON rather than a raw copy of the SQLite file, so the format survives schema changes and can be read by hand.
-- Contents: one array per table above, rows as stored, plus a header with format\_version, app\_version, exported\_at and steam\_id. The API key is never included.
+- Format: gzip-compressed JSON, named like `backlog-compass-2026-10-01.json.gz`. JSON rather than a raw copy of the SQLite file, so the format survives schema changes and can be read by hand.
+- Contents: one array per table above, rows as stored, plus a header with `format_version`, `app_version`, `exported_at` and `steam_id`. The API key is never included.
 - Small by design: playtime snapshots store a row only when a game's minutes change (plus one baseline row per game), and achievements store only unlocked rows plus a total per game. Proposed target: under 1 MB for a 1,000-game library after a year of use.
-- Import: checks format\_version, migrates older versions forward, saves a backup of the current data, then replaces it. Merging two histories is not in the MVP.
+- Import: checks `format_version`, migrates older versions forward, saves a backup of the current data, then replaces it. Merging two histories is not in the MVP.
 
 ```json
 {
